@@ -5,12 +5,12 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>카운트다운</title>
   <style>
-    body { margin: 0; font-family: sans-serif; background: #121212; color: white; text-align: center; }
-    .container { max-width: 500px; margin: auto; padding: 20px; background: #1f1f1f; border-radius: 20px; margin-top: 20px; }
+    body { margin: 0; font-family: sans-serif; background: #121212; color: white; text-align: center; padding-bottom: 100px; }
+    .container { max-width: 500px; margin: 0 auto; padding: 20px; background: #1f1f1f; border-radius: 20px; margin-top: 20px; position: relative; z-index: 1; }
     label { text-align: left; display: block; margin: 20px 0 5px; }
     select, input, button { width: 100%; padding: 10px; font-size: 1rem; border-radius: 10px; border: none; margin-top: 5px; }
     button { background: #00b894; color: white; font-weight: bold; margin-top: 20px; cursor: pointer; }
-    #countdownPage { display: block; padding: 40px; }
+    #countdownPage { display: block; padding: 40px; position: relative; z-index: 0; }
     #countdown { font-size: 1.8rem; margin-top: 20px; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; }
     #bgImage {
       position: fixed;
@@ -19,14 +19,13 @@
       height: 100vh;
       object-fit: contain;
       object-position: center;
-      z-index: -1;
+      z-index: -2;
       filter: brightness(0.6);
       display: none;
     }
     #previewImage { margin-top: 10px; max-width: 100%; border-radius: 10px; display: none; }
     .hint { font-size: 0.9rem; color: #ccc; text-align: left; margin-top: 5px; }
-    .button-group { display: flex; gap: 10px; margin-top: 20px; }
-    .button-group button { flex: 1; }
+    .button-group { margin-top: 20px; }
   </style>
 </head>
 <body>
@@ -61,9 +60,9 @@
 
     <div class="button-group">
       <button onclick="confirmSelection()">확인</button>
-      <button onclick="reselect()">다시 보기</button>
     </div>
   </div>
+
 
   <script>
     const targetDate = new Date("2025-04-04T11:00:00").getTime();
