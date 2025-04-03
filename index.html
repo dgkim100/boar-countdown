@@ -105,9 +105,12 @@
   <div class="container" id="setup">
     <h1>카운트다운 설정</h1>
 
-    <label for="titleInput">카운트다운 제목</label>
+    <label for="titlePreset">카운트다운 제목 선택</label>
+    <select id="titlePreset">
+      <option value="">--- 선택하지 않음 ---</option>
+    </select>
     <input type="text" id="titleInput" placeholder="예: 멧돼지 사냥 완성까지" />
-    <p class="hint">제목을 입력하지 않으면 기본 제목이 사용됩니다.</p>
+    <p class="hint">선택하거나 입력하지 않으면 추천 중 하나가 자동 선택됩니다.</p>
 
     <label for="imagePreset">이미지 URL 선택 (추천 목록)</label>
     <select id="imagePreset">
@@ -116,7 +119,7 @@
 
     <label for="imageUrl">또는 직접 입력</label>
     <input type="text" id="imageUrl" placeholder="예: https://example.com/image.jpg" />
-    <p class="hint">이미지 URL을 입력하지 않으면 추천 목록 중 하나가 자동 선택됩니다.</p>
+    <p class="hint">이미지 URL을 입력하지 않으면 추천 중 하나가 자동 선택됩니다.</p>
 
     <img id="previewImage" src="" alt="미리보기" />
 
@@ -133,24 +136,42 @@
     const bg = document.getElementById("bgImage");
     const preview = document.getElementById("previewImage");
     const imageUrlInput = document.getElementById("imageUrl");
+    const titleInput = document.getElementById("titleInput");
 
     async function loadPresets() {
       try {
-        const res = await fetch("/.netlify/functions/get-urls");
-        const urls = await res.json();
-        const select = document.getElementById("imagePreset");
+        const [imgRes, titleRes] = await Promise.all([
+          fetch("/.netlify/functions/get-urls"),
+          fetch("/.netlify/functions/get-titles")
+        ]);
+        const urls = await imgRes.json();
+        const titles = await titleRes.json();
+
+        const imgSelect = document.getElementById("imagePreset");
+        const titleSelect = document.getElementById("titlePreset");
 
         urls.forEach(url => {
           const option = document.createElement("option");
           option.value = url;
           option.textContent = url;
-          select.appendChild(option);
+          imgSelect.appendChild(option);
         });
 
-        select.addEventListener("change", e => {
+        titles.forEach(title => {
+          const option = document.createElement("option");
+          option.value = title;
+          option.textContent = title;
+          titleSelect.appendChild(option);
+        });
+
+        imgSelect.addEventListener("change", e => {
           const selectedUrl = e.target.value;
           imageUrlInput.value = selectedUrl;
           updatePreviewImage(selectedUrl);
+        });
+
+        titleSelect.addEventListener("change", e => {
+          titleInput.value = e.target.value;
         });
       } catch (err) {
         console.error("추천 목록 로딩 실패:", err);
@@ -173,41 +194,51 @@
     loadPresets();
 
     async function startCountdown() {
-      const title = document.getElementById("titleInput").value.trim() || "멧돼지 사냥 완성까지";
-
+      let title = titleInput.value.trim();
       let url = imageUrlInput.value.trim();
-      const select = document.getElementById("imagePreset");
+
+      const titleSelect = document.getElementById("titlePreset");
+      const imgSelect = document.getElementById("imagePreset");
+
+      if (!title) {
+        const options = Array.from(titleSelect.options).filter(opt => opt.value);
+        if (options.length > 0) {
+          const random = options[Math.floor(Math.random() * options.length)];
+          title = random.value;
+          titleInput.value = title;
+          titleSelect.value = title;
+        }
+      }
 
       if (!url) {
-        const options = Array.from(select.options).filter(opt => opt.value);
+        const options = Array.from(imgSelect.options).filter(opt => opt.value);
         if (options.length > 0) {
-          const randomOption = options[Math.floor(Math.random() * options.length)];
-          url = randomOption.value;
+          const random = options[Math.floor(Math.random() * options.length)];
+          url = random.value;
           imageUrlInput.value = url;
-          select.value = url;
+          imgSelect.value = url;
           updatePreviewImage(url);
         }
       }
 
+      if (title) {
+        await fetch("/.netlify/functions/save-title", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ title })
+        });
+      }
+
       if (url) {
-        try {
-          const res = await fetch("/.netlify/functions/save-url", {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({ url }),
-          });
+        await fetch("/.netlify/functions/save-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url })
+        });
 
-          if (!res.ok) {
-            const msg = await res.text();
-            alert("이미지 URL 저장 실패:\n" + msg);
-          }
-
-          bg.src = url;
-          bg.onload = () => { bg.style.display = "block"; };
-          bg.onerror = () => alert("이미지를 불러올 수 없습니다.");
-        } catch (err) {
-          console.warn("URL 저장 실패", err);
-        }
+        bg.src = url;
+        bg.onload = () => { bg.style.display = "block"; };
+        bg.onerror = () => alert("이미지를 불러올 수 없습니다.");
       }
 
       document.getElementById("setup").style.display = "none";
