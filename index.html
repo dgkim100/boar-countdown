@@ -6,11 +6,11 @@
   <title>카운트다운</title>
   <style>
     body { margin: 0; font-family: sans-serif; background: #121212; color: white; text-align: center; }
-    .container { max-width: 500px; margin: auto; padding: 20px; background: #1f1f1f; border-radius: 20px; margin-top: 40px; }
+    .container { max-width: 500px; margin: auto; padding: 20px; background: #1f1f1f; border-radius: 20px; margin-top: 20px; }
     label { text-align: left; display: block; margin: 20px 0 5px; }
     select, input, button { width: 100%; padding: 10px; font-size: 1rem; border-radius: 10px; border: none; margin-top: 5px; }
-    button { background: #00b894; color: white; font-weight: bold; margin-top: 20px; }
-    #countdownPage { display: none; padding: 40px; }
+    button { background: #00b894; color: white; font-weight: bold; margin-top: 20px; cursor: pointer; }
+    #countdownPage { display: block; padding: 40px; }
     #countdown { font-size: 1.8rem; margin-top: 20px; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; }
     #bgImage {
       position: fixed;
@@ -25,12 +25,20 @@
     }
     #previewImage { margin-top: 10px; max-width: 100%; border-radius: 10px; display: none; }
     .hint { font-size: 0.9rem; color: #ccc; text-align: left; margin-top: 5px; }
+    .button-group { display: flex; gap: 10px; margin-top: 20px; }
+    .button-group button { flex: 1; }
   </style>
 </head>
 <body>
   <img id="bgImage" alt="Background" />
-  <div class="container" id="setup">
-    <h1>카운트다운 설정</h1>
+
+  <div id="countdownPage">
+    <h1 id="pageTitle"></h1>
+    <div id="countdown">계산 중...</div>
+  </div>
+
+  <div class="container" id="settings">
+    <h2>제목과 이미지를 변경할 수 있어요</h2>
 
     <label for="titlePreset">카운트다운 제목 선택</label>
     <select id="titlePreset"><option value="">--- 선택하지 않음 ---</option></select>
@@ -51,12 +59,10 @@
 
     <img id="previewImage" alt="미리보기" />
 
-    <button onclick="startCountdown()">시작하기</button>
-  </div>
-
-  <div id="countdownPage">
-    <h1 id="pageTitle"></h1>
-    <div id="countdown">계산 중...</div>
+    <div class="button-group">
+      <button onclick="confirmSelection()">확인</button>
+      <button onclick="reselect()">다시 보기</button>
+    </div>
   </div>
 
   <script>
@@ -99,6 +105,8 @@
         imageUrlInput.value = e.target.value;
         updatePreviewImage(e.target.value);
       });
+
+      autoStartCountdown(titles, urls);
     }
 
     function shuffle(arr) {
@@ -141,19 +149,30 @@
       }
     }
 
-    async function startCountdown() {
-      let title = titleInput.value.trim();
-      let url = imageUrlInput.value.trim();
+    function applyCountdown(title, url) {
+      document.getElementById("pageTitle").textContent = title || "카운트다운";
+      if (url && /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
+        bg.src = url;
+        bg.onload = () => bg.style.display = "block";
+        bg.onerror = () => alert("이미지를 불러올 수 없습니다.");
+      }
+      startTimer();
+    }
 
-      if (!title) {
-        const opts = [...document.getElementById("titlePreset").options].filter(o => o.value);
-        if (opts.length) title = opts[Math.floor(Math.random() * opts.length)].value;
-      }
-      if (!url) {
-        const opts = [...document.getElementById("imagePreset").options].filter(o => o.value);
-        if (opts.length) url = opts[Math.floor(Math.random() * opts.length)].value;
-        updatePreviewImage(url);
-      }
+    function autoStartCountdown(titles, urls) {
+      const title = titles.length ? titles[Math.floor(Math.random() * titles.length)] : "카운트다운";
+      const url = urls.length ? urls[Math.floor(Math.random() * urls.length)] : "";
+      titleInput.value = title;
+      imageUrlInput.value = url;
+      document.getElementById("titlePreset").value = title;
+      document.getElementById("imagePreset").value = url;
+      updatePreviewImage(url);
+      applyCountdown(title, url);
+    }
+
+    async function confirmSelection() {
+      const title = titleInput.value.trim();
+      const url = imageUrlInput.value.trim();
 
       if (title) await fetch("/.netlify/functions/save-title", {
         method: "POST",
@@ -167,15 +186,15 @@
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url })
         });
-        bg.src = url;
-        bg.onload = () => bg.style.display = "block";
-        bg.onerror = () => alert("이미지를 불러올 수 없습니다.");
       }
 
-      document.getElementById("setup").style.display = "none";
-      document.getElementById("countdownPage").style.display = "block";
+      bg.src = url;
+      bg.onload = () => bg.style.display = "block";
       document.getElementById("pageTitle").textContent = title || "카운트다운";
-      startTimer();
+    }
+
+    function reselect() {
+      window.location.reload();
     }
 
     function startTimer() {
@@ -197,7 +216,6 @@
     }
 
     loadPresets();
-    window.startCountdown = startCountdown;
   </script>
 </body>
 </html>
