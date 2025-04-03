@@ -109,7 +109,7 @@
 
     <label for="imageUrl">또는 직접 입력</label>
     <input type="text" id="imageUrl" placeholder="예: https://example.com/image.jpg" />
-    <p class="hint">이미지 URL을 입력하면 추천 목록에도 자동 저장됩니다.</p>
+    <p class="hint">이미지 URL을 입력하지 않으면 추천 목록 중 하나가 자동 선택됩니다.</p>
 
     <button onclick="startCountdown()">시작하기</button>
   </div>
@@ -148,7 +148,20 @@
 
     async function startCountdown() {
       const title = document.getElementById("titleInput").value.trim() || "멧돼지 사냥 완성까지";
-      const url = document.getElementById("imageUrl").value.trim();
+
+      let url = document.getElementById("imageUrl").value.trim();
+      const select = document.getElementById("imagePreset");
+
+      // ✅ 입력 없으면 추천 목록 중 랜덤 선택
+      if (!url) {
+        const options = Array.from(select.options).filter(opt => opt.value);
+        if (options.length > 0) {
+          const randomOption = options[Math.floor(Math.random() * options.length)];
+          url = randomOption.value;
+          document.getElementById("imageUrl").value = url;
+          select.value = url;
+        }
+      }
 
       if (url) {
         try {
@@ -200,7 +213,7 @@
       setInterval(updateCountdown, 1000);
     }
 
-    // ✅ 버튼 클릭 가능하도록 전역 등록
+    // ✅ 버튼 작동을 위해 전역 함수 등록
     window.startCountdown = startCountdown;
   </script>
 </body>
