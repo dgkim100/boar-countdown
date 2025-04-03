@@ -3,125 +3,53 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>멧돼지 사냥 카운트다운</title>
+  <title>카운트다운</title>
   <style>
-    body {
-      margin: 0;
-      padding: 0;
-      font-family: 'Segoe UI', sans-serif;
-      background: #121212;
-      color: white;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-    }
-
-    .container {
-      background: #1f1f1f;
-      padding: 30px;
-      border-radius: 20px;
-      width: 90%;
-      max-width: 500px;
-      margin-top: 40px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.5);
-    }
-
-    h1 { font-size: 1.6rem; margin-bottom: 20px; }
-
-    label {
-      display: block;
-      margin-top: 15px;
-      text-align: left;
-      font-weight: bold;
-    }
-
-    input, select {
-      width: 100%;
-      padding: 12px;
-      margin-top: 5px;
-      border-radius: 8px;
-      border: none;
-      font-size: 1rem;
-    }
-
-    p.hint {
-      font-size: 0.9rem;
-      color: #ccc;
-      margin-top: -5px;
-    }
-
-    button {
-      margin-top: 20px;
-      width: 100%;
-      padding: 14px;
-      background: #00b894;
-      border: none;
-      border-radius: 8px;
-      font-size: 1.1rem;
-      font-weight: bold;
-      color: white;
-      cursor: pointer;
-    }
-
-    button:hover { background: #019875; }
-
-    #countdownPage {
-      display: none;
-      text-align: center;
-      padding: 40px 20px;
-    }
-
-    #countdown {
-      font-size: 1.8rem;
-      margin-top: 30px;
-      background: rgba(0, 0, 0, 0.6);
-      display: inline-block;
-      padding: 20px 30px;
-      border-radius: 15px;
-    }
-
+    body { margin: 0; font-family: sans-serif; background: #121212; color: white; text-align: center; }
+    .container { max-width: 500px; margin: auto; padding: 20px; background: #1f1f1f; border-radius: 20px; margin-top: 40px; }
+    label { text-align: left; display: block; margin: 20px 0 5px; }
+    select, input, button { width: 100%; padding: 10px; font-size: 1rem; border-radius: 10px; border: none; margin-top: 5px; }
+    button { background: #00b894; color: white; font-weight: bold; margin-top: 20px; }
+    #countdownPage { display: none; padding: 40px; }
+    #countdown { font-size: 1.8rem; margin-top: 20px; background: rgba(0,0,0,0.5); padding: 20px; border-radius: 10px; }
     #bgImage {
       position: fixed;
       top: 0; left: 0;
-      width: 100%; height: 100%;
-      object-fit: cover;
+      width: 100vw;
+      height: 100vh;
+      object-fit: contain;
+      object-position: center;
       z-index: -1;
       filter: brightness(0.6);
       display: none;
     }
-
-    #previewImage {
-      margin-top: 10px;
-      max-width: 100%;
-      border-radius: 12px;
-      display: none;
-    }
+    #previewImage { margin-top: 10px; max-width: 100%; border-radius: 10px; display: none; }
+    .hint { font-size: 0.9rem; color: #ccc; text-align: left; margin-top: 5px; }
   </style>
 </head>
 <body>
   <img id="bgImage" alt="Background" />
-
   <div class="container" id="setup">
     <h1>카운트다운 설정</h1>
 
     <label for="titlePreset">카운트다운 제목 선택</label>
-    <select id="titlePreset">
-      <option value="">--- 선택하지 않음 ---</option>
-    </select>
+    <select id="titlePreset"><option value="">--- 선택하지 않음 ---</option></select>
     <input type="text" id="titleInput" placeholder="예: 멧돼지 사냥 완성까지" />
-    <p class="hint">선택하거나 입력하지 않으면 추천 중 하나가 자동 선택됩니다.</p>
 
-    <label for="imagePreset">이미지 URL 선택 (추천 목록)</label>
-    <select id="imagePreset">
-      <option value="">--- 선택하지 않음 ---</option>
-    </select>
+    <label for="imagePreset">이미지 URL 선택</label>
+    <select id="imagePreset"><option value="">--- 선택하지 않음 ---</option></select>
 
     <label for="imageUrl">또는 직접 입력</label>
-    <input type="text" id="imageUrl" placeholder="예: https://example.com/image.jpg" />
-    <p class="hint">이미지 URL을 입력하지 않으면 추천 중 하나가 자동 선택됩니다.</p>
+    <input type="text" id="imageUrl" placeholder="https://...jpg/png" />
 
-    <img id="previewImage" src="" alt="미리보기" />
+    <label for="imageFile">또는 로컬 이미지 선택</label>
+    <input type="file" id="imageFile" accept="image/*" />
+
+    <p class="hint" style="color: #ff7675;">
+      ※ 로컬에서 선택한 이미지는 서버에 저장되며 다른 사용자에게도 추천 이미지로 노출됩니다. 민감한 이미지는 업로드하지 마세요.
+    </p>
+
+    <img id="previewImage" alt="미리보기" />
 
     <button onclick="startCountdown()">시작하기</button>
   </div>
@@ -135,51 +63,77 @@
     const targetDate = new Date("2025-04-04T11:00:00").getTime();
     const bg = document.getElementById("bgImage");
     const preview = document.getElementById("previewImage");
-    const imageUrlInput = document.getElementById("imageUrl");
     const titleInput = document.getElementById("titleInput");
+    const imageUrlInput = document.getElementById("imageUrl");
+    const imageFileInput = document.getElementById("imageFile");
 
     async function loadPresets() {
-      try {
-        const [imgRes, titleRes] = await Promise.all([
-          fetch("/.netlify/functions/get-urls"),
-          fetch("/.netlify/functions/get-titles")
-        ]);
-        const urls = await imgRes.json();
-        const titles = await titleRes.json();
+      const [titleRes, urlRes] = await Promise.all([
+        fetch("/.netlify/functions/get-titles"),
+        fetch("/.netlify/functions/get-urls")
+      ]);
+      let titles = await titleRes.json();
+      let urls = await urlRes.json();
+      shuffle(titles);
+      shuffle(urls);
 
-        const imgSelect = document.getElementById("imagePreset");
-        const titleSelect = document.getElementById("titlePreset");
+      const titleSelect = document.getElementById("titlePreset");
+      const imageSelect = document.getElementById("imagePreset");
 
-        urls.forEach(url => {
-          const option = document.createElement("option");
-          option.value = url;
-          option.textContent = url;
-          imgSelect.appendChild(option);
-        });
+      titles.forEach(t => {
+        const option = document.createElement("option");
+        option.value = t;
+        option.textContent = t;
+        titleSelect.appendChild(option);
+      });
 
-        titles.forEach(title => {
-          const option = document.createElement("option");
-          option.value = title;
-          option.textContent = title;
-          titleSelect.appendChild(option);
-        });
+      urls.forEach(u => {
+        const option = document.createElement("option");
+        option.value = u;
+        option.textContent = u;
+        imageSelect.appendChild(option);
+      });
 
-        imgSelect.addEventListener("change", e => {
-          const selectedUrl = e.target.value;
-          imageUrlInput.value = selectedUrl;
-          updatePreviewImage(selectedUrl);
-        });
+      titleSelect.addEventListener("change", e => titleInput.value = e.target.value);
+      imageSelect.addEventListener("change", e => {
+        imageUrlInput.value = e.target.value;
+        updatePreviewImage(e.target.value);
+      });
+    }
 
-        titleSelect.addEventListener("change", e => {
-          titleInput.value = e.target.value;
-        });
-      } catch (err) {
-        console.error("추천 목록 로딩 실패:", err);
+    function shuffle(arr) {
+      for (let i = arr.length - 1; i > 0; i--) {
+        const j = Math.floor(Math.random() * (i + 1));
+        [arr[i], arr[j]] = [arr[j], arr[i]];
       }
     }
 
+    imageUrlInput.addEventListener("input", e => updatePreviewImage(e.target.value.trim()));
+
+    imageFileInput.addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = async function(evt) {
+        const base64 = evt.target.result.split(",")[1];
+        const res = await fetch("/.netlify/functions/upload-image", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ base64, filename: file.name })
+        });
+        const data = await res.json();
+        if (res.ok && data.url) {
+          imageUrlInput.value = data.url;
+          updatePreviewImage(data.url);
+        } else {
+          alert("이미지 업로드 실패: " + (data.error || ""));
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+
     function updatePreviewImage(url) {
-      if (url) {
+      if (/^https?:\/\//.test(url)) {
         preview.src = url;
         preview.style.display = "block";
       } else {
@@ -187,89 +141,62 @@
       }
     }
 
-    imageUrlInput.addEventListener("input", e => {
-      updatePreviewImage(e.target.value.trim());
-    });
-
-    loadPresets();
-
     async function startCountdown() {
       let title = titleInput.value.trim();
       let url = imageUrlInput.value.trim();
 
-      const titleSelect = document.getElementById("titlePreset");
-      const imgSelect = document.getElementById("imagePreset");
-
       if (!title) {
-        const options = Array.from(titleSelect.options).filter(opt => opt.value);
-        if (options.length > 0) {
-          const random = options[Math.floor(Math.random() * options.length)];
-          title = random.value;
-          titleInput.value = title;
-          titleSelect.value = title;
-        }
+        const opts = [...document.getElementById("titlePreset").options].filter(o => o.value);
+        if (opts.length) title = opts[Math.floor(Math.random() * opts.length)].value;
       }
-
       if (!url) {
-        const options = Array.from(imgSelect.options).filter(opt => opt.value);
-        if (options.length > 0) {
-          const random = options[Math.floor(Math.random() * options.length)];
-          url = random.value;
-          imageUrlInput.value = url;
-          imgSelect.value = url;
-          updatePreviewImage(url);
-        }
+        const opts = [...document.getElementById("imagePreset").options].filter(o => o.value);
+        if (opts.length) url = opts[Math.floor(Math.random() * opts.length)].value;
+        updatePreviewImage(url);
       }
 
-      if (title) {
-        await fetch("/.netlify/functions/save-title", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ title })
-        });
-      }
+      if (title) await fetch("/.netlify/functions/save-title", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ title })
+      });
 
-      if (url) {
+      if (url && /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(url)) {
         await fetch("/.netlify/functions/save-url", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({ url })
         });
-
         bg.src = url;
-        bg.onload = () => { bg.style.display = "block"; };
+        bg.onload = () => bg.style.display = "block";
         bg.onerror = () => alert("이미지를 불러올 수 없습니다.");
       }
 
       document.getElementById("setup").style.display = "none";
       document.getElementById("countdownPage").style.display = "block";
-      document.getElementById("pageTitle").textContent = title;
+      document.getElementById("pageTitle").textContent = title || "카운트다운";
       startTimer();
     }
 
     function startTimer() {
       function updateCountdown() {
-        const now = new Date().getTime();
+        const now = Date.now();
         const distance = targetDate - now;
-
         if (distance < 0) {
           document.getElementById("countdown").innerHTML = "🎯 완료!";
           return;
         }
-
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-        document.getElementById("countdown").innerHTML =
-          `${days}일 ${hours}시간 ${minutes}분 ${seconds}초 남음`;
+        const d = Math.floor(distance / (1000 * 60 * 60 * 24));
+        const h = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+        const s = Math.floor((distance % (1000 * 60)) / 1000);
+        document.getElementById("countdown").innerHTML = `${d}일 ${h}시간 ${m}분 ${s}초 남음`;
       }
-
       updateCountdown();
       setInterval(updateCountdown, 1000);
     }
 
+    loadPresets();
     window.startCountdown = startCountdown;
   </script>
 </body>

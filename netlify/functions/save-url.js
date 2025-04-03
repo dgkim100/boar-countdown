@@ -1,3 +1,4 @@
+// netlify/functions/save-url.js
 const fetch = require("node-fetch");
 
 exports.handler = async (event) => {
@@ -6,6 +7,16 @@ exports.handler = async (event) => {
   }
 
   const { url } = JSON.parse(event.body);
+
+  // ✅ 이미지 URL 유효성 검사
+  const isValidUrl = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(url);
+  if (!isValidUrl) {
+    return {
+      statusCode: 400,
+      body: JSON.stringify({ error: "Invalid image URL format" })
+    };
+  }
+
   const token = process.env.GITHUB_TOKEN;
   const repo = process.env.REPO_NAME;
   const path = process.env.TARGET_FILE;
