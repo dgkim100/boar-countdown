@@ -1,18 +1,26 @@
-const fs = require("fs");
-const path = require("path");
+const fetch = require("node-fetch");
 
 exports.handler = async () => {
+  const token = process.env.GITHUB_TOKEN;
+  const repo = process.env.REPO_NAME;
+  const path = process.env.TARGET_FILE;
+
+  const api = `https://api.github.com/repos/${repo}/contents/${path}`;
+
   try {
-    const filePath = path.join(__dirname, "../../data/urls.json");
-    const data = fs.readFileSync(filePath, "utf-8");
+    const res = await fetch(api, {
+      headers: { Authorization: `token ${token}` },
+    });
+    const data = await res.json();
+    const content = Buffer.from(data.content, "base64").toString("utf-8");
     return {
       statusCode: 200,
-      body: data,
+      body: content,
     };
   } catch (err) {
     return {
       statusCode: 500,
-      body: JSON.stringify({ error: "파일 읽기 실패", details: err.message }),
+      body: JSON.stringify({ error: "GitHub fetch failed", details: err.message }),
     };
   }
 };

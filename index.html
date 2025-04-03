@@ -5,7 +5,6 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>멧돼지 사냥 카운트다운</title>
   <style>
-    * { box-sizing: border-box; }
     body {
       margin: 0;
       padding: 0;
@@ -30,7 +29,12 @@
 
     h1 { font-size: 1.6rem; margin-bottom: 20px; }
 
-    label { display: block; margin-top: 15px; text-align: left; }
+    label {
+      display: block;
+      margin-top: 15px;
+      text-align: left;
+      font-weight: bold;
+    }
 
     input, select {
       width: 100%;
@@ -39,6 +43,12 @@
       border-radius: 8px;
       border: none;
       font-size: 1rem;
+    }
+
+    p.hint {
+      font-size: 0.9rem;
+      color: #ccc;
+      margin-top: -5px;
     }
 
     button {
@@ -88,16 +98,18 @@
   <div class="container" id="setup">
     <h1>카운트다운 설정</h1>
 
-    <label>카운트다운 제목</label>
+    <label for="titleInput">카운트다운 제목</label>
     <input type="text" id="titleInput" placeholder="예: 멧돼지 사냥 완성까지" />
+    <p class="hint">제목을 입력하지 않으면 기본 제목이 사용됩니다.</p>
 
-    <label>이미지 URL 선택 (추천 목록)</label>
+    <label for="imagePreset">이미지 URL 선택 (추천 목록)</label>
     <select id="imagePreset">
       <option value="">--- 선택하지 않음 ---</option>
     </select>
 
-    <label>또는 직접 입력</label>
+    <label for="imageUrl">또는 직접 입력</label>
     <input type="text" id="imageUrl" placeholder="예: https://example.com/image.jpg" />
+    <p class="hint">이미지 URL을 입력하면 추천 목록에도 자동 저장됩니다.</p>
 
     <button onclick="startCountdown()">시작하기</button>
   </div>
@@ -111,7 +123,6 @@
     const targetDate = new Date("2025-04-04T11:00:00").getTime();
     const bg = document.getElementById("bgImage");
 
-    // --- 1. 추천 목록 불러오기 ---
     async function loadPresets() {
       try {
         const res = await fetch("/.netlify/functions/get-urls");
@@ -125,7 +136,6 @@
           select.appendChild(option);
         });
 
-        // 선택 시 input 채워지도록
         select.addEventListener("change", e => {
           document.getElementById("imageUrl").value = e.target.value;
         });
@@ -136,14 +146,17 @@
 
     loadPresets();
 
-    // --- 2. 시작 버튼 클릭 ---
     async function startCountdown() {
       const title = document.getElementById("titleInput").value.trim() || "멧돼지 사냥 완성까지";
       const url = document.getElementById("imageUrl").value.trim();
 
       if (url) {
         try {
-          await saveUrl(url); // 서버에 저장
+          await fetch("/.netlify/functions/save-url", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ url }),
+          });
           bg.src = url;
           bg.onload = () => { bg.style.display = "block"; };
           bg.onerror = () => alert("이미지를 불러올 수 없습니다.");
@@ -155,42 +168,12 @@
       document.getElementById("setup").style.display = "none";
       document.getElementById("countdownPage").style.display = "block";
       document.getElementById("pageTitle").textContent = title;
-
       startTimer();
     }
 
-    // --- 3. 카운트다운 시작 ---
     function startTimer() {
       function updateCountdown() {
         const now = new Date().getTime();
         const distance = targetDate - now;
 
-        if (distance < 0) {
-          document.getElementById("countdown").innerHTML = "🎯 완료!";
-          return;
-        }
-
-        const days = Math.floor(distance / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-        const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-        document.getElementById("countdown").innerHTML =
-          `${days}일 ${hours}시간 ${minutes}분 ${seconds}초 남음`;
-      }
-
-      updateCountdown();
-      setInterval(updateCountdown, 1000);
-    }
-
-    // --- 4. URL 저장 함수 ---
-    async function saveUrl(url) {
-      return await fetch("/.netlify/functions/save-url", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ url }),
-      });
-    }
-  </script>
-</body>
-</html>
+        if (distance < 0)
