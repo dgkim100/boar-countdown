@@ -90,6 +90,13 @@
       filter: brightness(0.6);
       display: none;
     }
+
+    #previewImage {
+      margin-top: 10px;
+      max-width: 100%;
+      border-radius: 12px;
+      display: none;
+    }
   </style>
 </head>
 <body>
@@ -111,6 +118,8 @@
     <input type="text" id="imageUrl" placeholder="예: https://example.com/image.jpg" />
     <p class="hint">이미지 URL을 입력하지 않으면 추천 목록 중 하나가 자동 선택됩니다.</p>
 
+    <img id="previewImage" src="" alt="미리보기" />
+
     <button onclick="startCountdown()">시작하기</button>
   </div>
 
@@ -122,6 +131,8 @@
   <script>
     const targetDate = new Date("2025-04-04T11:00:00").getTime();
     const bg = document.getElementById("bgImage");
+    const preview = document.getElementById("previewImage");
+    const imageUrlInput = document.getElementById("imageUrl");
 
     async function loadPresets() {
       try {
@@ -137,29 +148,44 @@
         });
 
         select.addEventListener("change", e => {
-          document.getElementById("imageUrl").value = e.target.value;
+          const selectedUrl = e.target.value;
+          imageUrlInput.value = selectedUrl;
+          updatePreviewImage(selectedUrl);
         });
       } catch (err) {
         console.error("추천 목록 로딩 실패:", err);
       }
     }
 
+    function updatePreviewImage(url) {
+      if (url) {
+        preview.src = url;
+        preview.style.display = "block";
+      } else {
+        preview.style.display = "none";
+      }
+    }
+
+    imageUrlInput.addEventListener("input", e => {
+      updatePreviewImage(e.target.value.trim());
+    });
+
     loadPresets();
 
     async function startCountdown() {
       const title = document.getElementById("titleInput").value.trim() || "멧돼지 사냥 완성까지";
 
-      let url = document.getElementById("imageUrl").value.trim();
+      let url = imageUrlInput.value.trim();
       const select = document.getElementById("imagePreset");
 
-      // ✅ 입력 없으면 추천 목록 중 랜덤 선택
       if (!url) {
         const options = Array.from(select.options).filter(opt => opt.value);
         if (options.length > 0) {
           const randomOption = options[Math.floor(Math.random() * options.length)];
           url = randomOption.value;
-          document.getElementById("imageUrl").value = url;
+          imageUrlInput.value = url;
           select.value = url;
+          updatePreviewImage(url);
         }
       }
 
@@ -213,7 +239,6 @@
       setInterval(updateCountdown, 1000);
     }
 
-    // ✅ 버튼 작동을 위해 전역 함수 등록
     window.startCountdown = startCountdown;
   </script>
 </body>
