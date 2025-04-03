@@ -1,64 +1,39 @@
-// netlify/functions/save-url.js
-const fetch = require("node-fetch");
+const { Octokit } = require("@octokit/rest");
 
 exports.handler = async (event) => {
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
-  }
+  const { url: newUrl } = JSON.parse(event.body);
 
-  const { url } = JSON.parse(event.body);
-
-  // ✅ 이미지 URL 유효성 검사
-  const isValidUrl = /^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(url);
-  if (!isValidUrl) {
-    return {
-      statusCode: 400,
-      body: JSON.stringify({ error: "Invalid image URL format" })
-    };
+  if (!/^https?:\/\/.+\.(jpg|jpeg|png|gif|webp)$/i.test(newUrl)) {
+    return { statusCode: 400, body: "Invalid image URL." };
   }
 
   const token = process.env.GITHUB_TOKEN;
   const repo = process.env.REPO_NAME;
   const path = process.env.TARGET_FILE;
+  const [owner, repoName] = repo.split("/");
 
-  const api = `https://api.github.com/repos/${repo}/contents/${path}`;
+  const octokit = new Octokit({ auth: token });
+  const { data: fileData } = await octokit.repos.getContent({ owner, repo: repoName, path });
+  const content = Buffer.from(fileData.content, "base64").toString("utf-8");
+  let urls = JSON.parse(content);
 
-  const getRes = await fetch(api, {
-    headers: { Authorization: `token ${token}` },
-  });
-
-  const getData = await getRes.json();
-  const sha = getData.sha;
-  let urls = [];
-
-  try {
-    const decoded = Buffer.from(getData.content, "base64").toString("utf-8");
-    urls = JSON.parse(decoded);
-  } catch {
-    urls = [];
+  if (!urls.includes(newUrl)) {
+    urls.unshift(newUrl); // 새 URL을 맨 앞에 추가 (제한 없음)
   }
 
-  if (!urls.includes(url)) {
-    urls.push(url);
-  }
+  const updated = Buffer.from(JSON.stringify(urls, null, 2)).toString("base64");
 
-  const updatedContent = Buffer.from(JSON.stringify(urls, null, 2)).toString("base64");
-
-  await fetch(api, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      message: `Add image URL: ${url}`,
-      content: updatedContent,
-      sha: sha,
-    }),
+  await octokit.repos.createOrUpdateFileContents({
+    owner,
+    repo: repoName,
+    path,
+    message: "Add image URL",
+    content: updated,
+    sha: fileData.sha,
   });
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ status: "success", url }),
+    body: JSON.stringify({ success: true })
   };
 };

@@ -1,53 +1,39 @@
-const fetch = require("node-fetch");
+const { Octokit } = require("@octokit/rest");
 
 exports.handler = async (event) => {
-  if (event.httpMethod !== "POST") {
-    return { statusCode: 405, body: "Method Not Allowed" };
+  const { title: newTitle } = JSON.parse(event.body);
+
+  if (!newTitle || typeof newTitle !== "string") {
+    return { statusCode: 400, body: "Invalid title." };
   }
 
-  const { title } = JSON.parse(event.body);
   const token = process.env.GITHUB_TOKEN;
   const repo = process.env.REPO_NAME;
-  const path = "data/titles.json"; // 제목 저장 경로
+  const path = process.env.TARGET_TITLE_FILE;
+  const [owner, repoName] = repo.split("/");
 
-  const api = `https://api.github.com/repos/${repo}/contents/${path}`;
+  const octokit = new Octokit({ auth: token });
+  const { data: fileData } = await octokit.repos.getContent({ owner, repo: repoName, path });
+  const content = Buffer.from(fileData.content, "base64").toString("utf-8");
+  let titles = JSON.parse(content);
 
-  const getRes = await fetch(api, {
-    headers: { Authorization: `token ${token}` },
-  });
-
-  const getData = await getRes.json();
-  const sha = getData.sha;
-  let titles = [];
-
-  try {
-    const decoded = Buffer.from(getData.content, "base64").toString("utf-8");
-    titles = JSON.parse(decoded);
-  } catch {
-    titles = [];
+  if (!titles.includes(newTitle)) {
+    titles.unshift(newTitle); // 무제한 저장
   }
 
-  if (!titles.includes(title)) {
-    titles.push(title);
-  }
+  const updated = Buffer.from(JSON.stringify(titles, null, 2)).toString("base64");
 
-  const updatedContent = Buffer.from(JSON.stringify(titles, null, 2)).toString("base64");
-
-  await fetch(api, {
-    method: "PUT",
-    headers: {
-      Authorization: `token ${token}`,
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      message: `Add title: ${title}`,
-      content: updatedContent,
-      sha: sha,
-    }),
+  await octokit.repos.createOrUpdateFileContents({
+    owner,
+    repo: repoName,
+    path,
+    message: "Add title",
+    content: updated,
+    sha: fileData.sha,
   });
 
   return {
     statusCode: 200,
-    body: JSON.stringify({ status: "success", title }),
+    body: JSON.stringify({ success: true })
   };
 };
